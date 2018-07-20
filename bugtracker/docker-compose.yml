@@ -1,0 +1,69 @@
+version: "3.6"
+
+services:
+  php:
+    build: ./lamp_stack/php
+    container_name: php_mantisbt
+    depends_on: 
+      - mysql
+    ports:
+      - "8012:80"
+    volumes:
+      - ${LOG_DIR-./logs/apache2}:/var/log/apache2
+
+  mysql:
+    build: ./lamp_stack/mysql
+    container_name: mysql_mantisbt
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ALLOW_EMPTY_PASSWORD: ${MYSQL_ALLOW_EMPTY_PASSWORD}
+    ports:
+      - "3308:3306"
+    volumes:
+      - ${MYSQL_DATA_DIR-./data/mysql}:/var/lib/mysql
+      # Uncomment for production
+      # - type: volume
+      #   source: data_mysql # by default is in /var/lib/docker on host
+      #   target: /var/lib/mysql # On container
+      #   volume:
+      #     nocopy: true
+
+      # - ${MYSQL_LOG_DIR-./logs/mysql}:/var/lib/mysql
+      # # volumes mounted
+      # - "mysql-data:/var/lib/mysql"
+      # - "mysql-log:/var/log/mysql"
+      # - "mysql-conf:/etc/mysql/conf.d"
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:4.7
+    container_name: phpmyadmin_mantisbt
+    depends_on: 
+      - mysql
+    ports:
+      - 8016:80
+    env_file:
+      - .env
+      # See https://hub.docker.com/r/phpmyadmin/phpmyadmin/
+    environment:
+      PMA_ARBITRARY: 1 # Allow specification of hostname on login
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ALLOW_EMPTY_PASSWORD: ${MYSQL_ALLOW_EMPTY_PASSWORD}
+      PMA_HOST: localhost 
+      PMA_PORT: 3308
+      
+# Uncomment for production environment
+# volumes:
+#   data_mysql:
+#     driver: local
+#     name: data_mantisbt
+#     labels:
+#       - "${VOLUME_DESCRIPTION}"
